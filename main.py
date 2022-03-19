@@ -1,8 +1,9 @@
-# ----------------------------
-#   Đặng Ngọc Tiến - 20127641
-# ----------------------------
+# ---------------------------------------
+#   Trường Đại học Khoa Học Tự Nhiên    #
+#   Đặng Ngọc Tiến - 20127641           #
+# ---------------------------------------
 from queue import PriorityQueue
-from numpy import true_divide
+
 import pygame
 import time
 import Gui
@@ -70,8 +71,6 @@ class Grid:
                 if node.is_empty():
                     node.reset()
 
-############################################
-
     def init_maze(self):
         sNode = self.nodes[start_goal[0]][rows - start_goal[1]]
         gNode = self.nodes[start_goal[2]][rows - start_goal[3]]
@@ -107,17 +106,17 @@ class Grid:
                 j = 0
                 # draw p1 -> p(n-1)
                 while j < len(tx)-1:
-                    if tx[j+1] == tx[j]:  # ve duong doc
+                    if tx[j+1] == tx[j]:  # draw vertical lines
                         for l in range(timmin(ty[j], ty[j+1]), timmax(ty[j], ty[j+1])+1):
                             a = tx[j]
                             b = l
                             barrierNode = self.nodes[tx[j]][rows - l]
                             barrierNode.make_wall()
-                    elif ty[j] == ty[j+1]:   # ve duong ngang
+                    elif ty[j] == ty[j+1]:   # draw horizontal lines
                         for l in range(timmin(tx[j], tx[j+1]), timmax(tx[j], tx[j+1])+1):
                             barrierNode = self.nodes[l][rows - ty[j]]
                             barrierNode.make_wall()
-                    else:  # ve duong cheo
+                    else:  # draw diagonal lines
                         b = (tx[j]*ty[j+1] - tx[j+1]*ty[j])/(tx[j]-tx[j+1])
                         a = (ty[j]-b)/tx[j]
 
@@ -133,33 +132,27 @@ class Grid:
                     j = j+1
 
                 # draw p(n-1) -> p0
-                if tx[0] == tx[j]:  # ve duong doc
+                if tx[0] == tx[j]:  # draw vertical lines
                     for l in range(timmin(ty[j], ty[0]), timmax(ty[j], ty[0])+1):
                         a = tx[j]
                         b = l
                         barrierNode = self.nodes[tx[j]][rows - l]
                         barrierNode.make_wall()
-                elif ty[j] == ty[0]:   # ve duong ngang
+                elif ty[j] == ty[0]:   # draw horizontal lines
                     for l in range(timmin(tx[j], tx[0]), timmax(tx[j], tx[0])+1):
                         barrierNode = self.nodes[l][rows - ty[j]]
                         barrierNode.make_wall()
-                else:  # ve duong cheo
-                    ##### co bug can fix
+                else:  # draw diagonal lines
                     b = (tx[j]*ty[0] - tx[0]*ty[j])/(tx[j]-tx[0])
                     a = (ty[j]-b)/tx[j]
                     for l in range(timmin(tx[j], tx[0]), timmax(tx[j], tx[0])):
                         p = int(a*l+b)
                         barrierNode = self.nodes[l][rows - p]
                         barrierNode.make_wall()
-                    for l in range(timmin(ty[j], ty[0]), timmax(ty[j], ty[0])):
-                        p = int(a*l+b)
-                        barrierNode = self.nodes[rows - p][rows - l]
-                        barrierNode.make_wall()
+                    
 
+    # BFS Search Algorithm 
 
-############################################
-
-    # BFS Search Algorithm - Unweighted and gaurentee's the shortest path
     def bfs(self, start_node):
         parent = {}  # explored
         queue = []  # frontier
@@ -181,11 +174,11 @@ class Grid:
             for neighbor in current.neighbors:
                 if not neighbor.is_visited():
                     parent[neighbor] = current
-
+                   
                     if neighbor.is_end():
                         # Found the end - Reconstruct the Path
                         return self.reconstruct_path(parent, neighbor)
-
+                   
                     if not neighbor.is_end() and not neighbor.is_start():
                         # Mark neighbor node open and visited
                         neighbor.make_open()
@@ -201,10 +194,10 @@ class Grid:
 
         return -1
 
-    # UCS Search Algorithm - Unweighted and gaurentee's the shortest path
+    # UCS Search Algorithm 
     def ucs(self, start_node):
-        parent = {}
-        queue = []  # frontier
+        parent = {} 
+        queue = [] # frontier
         queue.append(start_node)
 
         # Loop through while queue is not empty
@@ -220,21 +213,21 @@ class Grid:
             # chooses the lowest-cost node in frontier
             sorted(queue)
             current = queue.pop(0)
-
+    
             for neighbor in current.neighbors:
                 if not neighbor.is_visited():
                     parent[neighbor] = current
                     if neighbor.is_end():
                         # Found the end - Reconstruct the Path
                         return self.reconstruct_path(parent, neighbor)
-
+                    
                     if not neighbor.is_end() and not neighbor.is_start():
                         # Mark neighbor node open and visited
                         neighbor.make_open()
                         neighbor.make_visited()
                     queue.append(neighbor)
 
-                # Update the grid with open & closed nodes
+                # Update the grid with open & closed nodes              
                 self.draw_grid()
 
                 # Close current node
@@ -243,12 +236,12 @@ class Grid:
 
         return -1
 
-    # DFS Search Algorithm - Weighted and does not gaurentee shortest path
-    def dfs(self, start_node):
+    # Depth limit Search Algorithm
+    def dls(self,start_node, limit):
         stack = []
         parent = {}
         stack.append(start_node)
-        while len(stack) > 0:
+        while limit <= 0:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.QUIT
@@ -261,7 +254,7 @@ class Grid:
             current = stack.pop()
             if current.is_end():
                 # Found the end - Reconstruct the Path
-                return self.reconstruct_path(parent, current)
+                return parent, current, True #self.reconstruct_path(parent, current)
 
             if not current.is_start():
                 # Close and mark node as visited
@@ -279,8 +272,18 @@ class Grid:
                         neighbor.make_open()
 
                 self.draw_grid()
-
+            limit = limit-1
         return -1
+
+    # Iterative Deepening Search Algorithm
+    def ids(self, start_node, limit):
+        notcutoff = False
+        for depth in range(limit):
+            parent, current, notcutoff = self.dls(start_node, depth)
+            if (notcutoff == True):
+                return self.reconstruct_path(parent, current)
+        return -1
+
 
     # A* Search Algorithm - Weigthed and gaurentee's the shortest path
     def astar(self, start_node, end_node):
@@ -332,12 +335,12 @@ class Grid:
                         if not neighbor.is_end():
                             neighbor.make_open()
 
-            # Update the grid with open & closed nodes
+            # Update the grid with open & closed nodes           
             self.draw_grid()
 
         return -1
 
-    # Greedy - Best First Search Algorithm - Weighted and does not gaurentee shortest path
+    # Greedy - Best First Search Algorithm 
     def greedy(self, start_node, end_node):
         count = 0
         open_set = PriorityQueue()
@@ -420,7 +423,7 @@ class Grid:
         elif value == 1:
             return self.ucs(start_node)
         elif value == 2:
-            return self.dfs(start_node)
+            return self.ids(start_node,4)
         elif value == 3:
             return self.astar(start_node, end_node)
         else:
@@ -605,7 +608,7 @@ if __name__ == "__main__":
         [(WHITE), ("#CCCCCC")],
         50, 470, 130, 17,
         tiny_font,
-        "Select Algorithm", ["Breadth First", "Uniform Cost", "Depth First", "A* Search", "Greedy-BFS"])
+        "Select Algorithm", ["Breadth First", "Uniform Cost", "IDDFS", "A* Search", "Greedy-BFS"])
 
     # bg win
     win.fill(("#E0FFFF"))
